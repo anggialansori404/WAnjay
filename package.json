@@ -3,7 +3,7 @@
   "version": "1.0.2",
   "description": "WAnjay - WhatsApp Web desktop wrapper",
   "author": "Kang Anggi",
-  "main": "main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -36,7 +36,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/wanjay.ico"
+      "icon": "src/assets/wanjay.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -45,9 +45,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "WAnjay",
-      "installerIcon": "assets/wanjay.ico",
-      "uninstallerIcon": "assets/wanjay.ico",
-      "installerHeaderIcon": "assets/wanjay.ico",
+      "installerIcon": "src/assets/wanjay.ico",
+      "uninstallerIcon": "src/assets/wanjay.ico",
+      "installerHeaderIcon": "src/assets/wanjay.ico",
       "unicode": true,
       "warningsAsErrors": false,
       "deleteAppDataOnUninstall": false

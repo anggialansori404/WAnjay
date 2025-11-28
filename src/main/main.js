@@ -285,10 +285,10 @@ async function showProfileSelector() {
       skipTaskbar: true,
       focusable: true,
       backgroundColor: '#0f172a',
-      webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, "profile-preload.js") },
+      webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, "..", "profile", "profile-preload.js") },
     });
     if (b.x !== undefined && b.y !== undefined) profileWindow.setPosition(b.x, b.y);
-    const profileHtmlPath = path.join(__dirname, "profile.html");
+    const profileHtmlPath = path.join(__dirname, "..", "profile", "profile.html");
     if (fs.existsSync(profileHtmlPath)) {
       profileWindow.loadFile(profileHtmlPath);
     } else {
@@ -345,7 +345,7 @@ function showRenameWindow(oldName) {
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
-        preload: path.join(__dirname, 'rename-preload.js'),
+        preload: path.join(__dirname, '..', 'windows', 'rename-preload.js'),
       },
     });
     // Position centrally within parent window
@@ -354,7 +354,7 @@ function showRenameWindow(oldName) {
       const y = b.y + Math.round((b.height - 200) / 2);
       renameWindow.setPosition(x, y);
     }
-    const renamePath = path.join(__dirname, 'rename.html');
+    const renamePath = path.join(__dirname, '..', 'windows', 'rename.html');
     if (fs.existsSync(renamePath)) {
       renameWindow.loadFile(renamePath);
     } else {
@@ -382,7 +382,7 @@ function ensureView(profile) {
   const lowMem = !!store.get("lowMemoryMode");
   const view = new BrowserView({
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "..", "preload", "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       spellcheck: !lowMem,
@@ -491,13 +491,13 @@ function initTabBar() {
   if (tabView) return;
   tabView = new BrowserView({
     webPreferences: {
-      preload: path.join(__dirname, "tabbar-preload.js"),
+      preload: path.join(__dirname, "..", "windows", "tabbar-preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
   // Load the tab bar HTML from file
-  const tabHtmlPath = path.join(__dirname, "tabbar.html");
+  const tabHtmlPath = path.join(__dirname, "..", "windows", "tabbar.html");
   if (fs.existsSync(tabHtmlPath)) {
     tabView.webContents.loadFile(tabHtmlPath);
   } else {
@@ -692,13 +692,13 @@ function showLockWindow(setup = false, force = false) {
     fullscreenable: false,
     skipTaskbar: true,
     focusable: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, "lock-preload.js") },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, "..", "lock", "lock-preload.js") },
   });
   if (b.x !== undefined && b.y !== undefined) {
     // Position lock window offset down by the tab height to leave tab bar exposed
     lockWindow.setPosition(b.x, b.y + offsetY);
   }
-  const lockHtmlPath = path.join(__dirname, "lock.html");
+  const lockHtmlPath = path.join(__dirname, "..", "lock", "lock.html");
   if (fs.existsSync(lockHtmlPath)) {
     lockWindow.loadFile(lockHtmlPath);
   } else {
@@ -989,12 +989,14 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    icon: path.join(__dirname, "assets", "wanjay.ico"),
+    icon: fs.existsSync(path.join(__dirname, "..", "..", "src", "assets", "wanjay.ico"))
+      ? path.join(__dirname, "..", "..", "src", "assets", "wanjay.ico")
+      : path.join(__dirname, "..", "assets", "wanjay.ico"),
     webPreferences: {
       // Note: the main window itself remains mostly empty. Actual content
       // (WhatsApp Web) is loaded into BrowserViews per profile. We still
       // enable a preload so that the lock overlay can communicate via IPC.
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "..", "preload", "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       spellcheck: !lowMem,
@@ -1073,10 +1075,19 @@ app.whenReady().then(() => {
   }
 
   // Tray setup
-  const trayIcon = nativeImage.createFromPath(path.join(__dirname, "assets", "wanjay.ico"));
+  // Prefer src/assets if exists, fallback to root assets
+  const trayIconPathSrc = path.join(__dirname, "..", "..", "src", "assets", "wanjay.ico");
+  const trayIconUnreadPathSrc = path.join(__dirname, "..", "..", "src", "assets", "wanjay-unread.ico");
+  const trayIconPathRoot = path.join(__dirname, "..", "assets", "wanjay.ico");
+  const trayIconUnreadPathRoot = path.join(__dirname, "..", "assets", "wanjay-unread.ico");
+  const trayIcon = fs.existsSync(trayIconPathSrc) ? nativeImage.createFromPath(trayIconPathSrc) : nativeImage.createFromPath(trayIconPathRoot);
+  const trayIconUnread = fs.existsSync(trayIconUnreadPathSrc)
+    ? nativeImage.createFromPath(trayIconUnreadPathSrc)
+    : (fs.existsSync(trayIconUnreadPathRoot) ? nativeImage.createFromPath(trayIconUnreadPathRoot) : trayIcon);
   tray = new Tray(trayIcon);
   // Preserve default icon so we can restore it when unread count returns to zero
   defaultTrayImage = trayIcon;
+  global.trayIconUnread = trayIconUnread;
   tray.setToolTip("WAnjay");
   // left-click toggles show/hide, right-click shows context menu
   tray.on("click", () => {
@@ -1220,17 +1231,18 @@ app.whenReady().then(() => {
         } else {
           tray.setToolTip(`WAnjay - ${unreadCount} unread`);
         }
-      } else {
-        tray.setToolTip('WAnjay');
-      }
-      // Swap tray icon to red dot overlay when there are unread messages
-      try {
-        if (unreadCount > 0) {
-          tray.setImage(getRedDotOverlay());
-        } else {
+        // Use a proper unread icon if available
+        try {
+          tray.setImage(global.trayIconUnread || defaultTrayImage);
+        } catch (_) {
           tray.setImage(defaultTrayImage);
         }
-      } catch (_) {}
+      } else {
+        tray.setToolTip('WAnjay');
+        try {
+          tray.setImage(defaultTrayImage);
+        } catch (_) {}
+      }
     }
   });
 
