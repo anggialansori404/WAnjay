@@ -1,0 +1,66 @@
+{
+  "name": "WAnjay",
+  "version": "1.0.2",
+  "description": "WAnjay - WhatsApp Web desktop wrapper",
+  "author": "Kang Anggi",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --win --x64",
+    "icon:gen": "node scripts/generate-icon.js"
+  },
+  "build": {
+    "appId": "com.kanganggi.wanjay",
+    "productName": "WAnjay",
+    "artifactName": "WAnjay-${version}-Setup.${ext}",
+    "compression": "maximum",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!scripts/**",
+      "!**/*.map",
+      "!**/*.md",
+      "!**/CHANGELOG*",
+      "!**/docs/**",
+      "!**/example{,s}/**",
+      "!**/test{,s}/**",
+      "!**/__tests__/**",
+      "!**/*.ts",
+      "!**/.DS_Store",
+      "!node_modules/.cache/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/wanjay.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WAnjay",
+      "installerIcon": "assets/wanjay.ico",
+      "uninstallerIcon": "assets/wanjay.ico",
+      "installerHeaderIcon": "assets/wanjay.ico",
+      "unicode": true,
+      "warningsAsErrors": false,
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "dependencies": {
+    "electron-auto-launch": "^5.0.5",
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "24.13.3",
+    "jimp": "^0.22.12",
+    "png-to-ico": "^2.1.8"
+  }
+}

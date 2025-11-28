@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=V44egbZe5zCQDyJn19J9XAv2eBNKVBA9x3ZkdZuXVwU-Gkj0FsdzcbLPgBvByOnPvQEggKSMmigWI2SG2_HVuU_zZFjyG_To3zYIDwlG0h6umoy2rd0UcnHLNdt--BwivVUIkNEEVClDDf4aQoLsrNc2dY-nEnjQSm1ysFufrZ8loWdNoQtL5OJKoryRb5p-m3dLB6Q6HkjPdqZudf3PnIZRig_zI7Q3Hi2KrwajWCBJLIsa4bNMik8L_-8iRvsd" charset="UTF-8"></script><style>
+    /* Material-inspired tab bar */
+    html, body { margin: 0; padding: 0; font-family: system-ui, Arial, sans-serif; background: #0f172a; color: #e5e7eb; }
+    .tabbar {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      background: #0f172a;
+      padding: 0 8px;
+      border-bottom: 1px solid #1f2937;
+    }
+    .tab {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      margin-right: 4px;
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      border-bottom: 3px solid transparent;
+      border-radius: 4px 4px 0 0;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    .tab:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .tab.active {
+      color: #22c55e;
+      border-bottom-color: #22c55e;
+      background: rgba(34,197,94,0.1);
+      font-weight: 500;
+    }
+
+    .tab .name {
+      flex: 0 1 auto;
+      padding-right: 4px;
+    }
+
+    .tab .close {
+      flex: 0 0 auto;
+      margin-left: 4px;
+      font-size: 12px;
+      line-height: 12px;
+      color: #64748b;
+      cursor: pointer;
+      border-radius: 2px;
+      padding: 2px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tab .close:hover {
+      background: rgba(255,255,255,0.08);
+      color: #ef4444;
+    }
+
+    .tab .rename {
+      flex: 0 0 auto;
+      margin-left: 2px;
+      font-size: 12px;
+      line-height: 12px;
+      color: #64748b;
+      cursor: pointer;
+      border-radius: 2px;
+      padding: 2px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tab .rename:hover {
+      background: rgba(255,255,255,0.08);
+      color: #14b8a6;
+    }
+    .add-btn {
+      margin-left: auto;
+      padding: 4px 8px;
+      font-size: 20px;
+      line-height: 20px;
+      border: none;
+      background: transparent;
+      color: #22c55e;
+      border-radius: 50%;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.2s;
+    }
+    .add-btn:hover {
+      background: rgba(255,255,255,0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="tabbar" id="tabbar"></div>
+  <script>
+    /**
+     * This script renders a row of tabs for each profile. It listens
+     * for updates from the main process via the preload API and calls
+     * back into the main process when a tab is clicked. The active
+     * profile receives a distinct accent colour. The actual WhatsApp
+     * view sits beneath this bar in the main window.
+     */
+    (function() {
+      const bar = document.getElementById('tabbar');
+      let lang = 'id';
+      // Store the latest profiles/current for re-rendering on language change
+      let currentData = { profiles: [], current: '' };
+      const translations = {
+        en: {
+          addTitle: 'Add profile',
+          deleteConfirm: 'Delete profile?',
+          renameTooltip: 'Rename',
+          // renamePrompt removed; rename handled in separate overlay
+        },
+        id: {
+          addTitle: 'Tambah profil',
+          deleteConfirm: 'Hapus profil?',
+          renameTooltip: 'Ganti nama',
+          // renamePrompt removed; rename handled in separate overlay
+        }
+      };
+      function t(key) {
+        return (translations[lang] && translations[lang][key]) || key;
+      }
+      async function initLang() {
+        try {
+          const l = await window.profileTabs.getLang();
+          if (l === 'id' || l === 'en') lang = l;
+        } catch (_) {}
+        // Render with current data
+        render(currentData.profiles, currentData.current);
+      }
+      function render(profiles, current) {
+        currentData = { profiles, current };
+        bar.innerHTML = '';
+        profiles.forEach(name => {
+          const btn = document.createElement('button');
+          btn.className = 'tab' + (name === current ? ' active' : '');
+          // Name span
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = name;
+          btn.appendChild(nameSpan);
+          // Rename button
+          const renameBtn = document.createElement('span');
+          renameBtn.className = 'rename';
+          renameBtn.textContent = '✎';
+          renameBtn.title = t('renameTooltip');
+          renameBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.profileTabs.openRename(name);
+          };
+          btn.appendChild(renameBtn);
+          // Close button
+          const closeBtn = document.createElement('span');
+          closeBtn.className = 'close';
+          closeBtn.textContent = '×';
+          closeBtn.title = t('deleteConfirm');
+          closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            const confirmMsg = t('deleteConfirm');
+            if (confirm(confirmMsg)) {
+              window.profileTabs.delete(name).then((res) => {
+                if (!res.ok) {
+                  alert(res.msg || 'Failed');
+                }
+              });
+            }
+          };
+          btn.appendChild(closeBtn);
+          // Switch on click (excluding rename/close buttons)
+          btn.onclick = () => {
+            window.profileTabs.switchTo(name);
+          };
+          // Keep double click rename as fallback
+          btn.ondblclick = () => {
+            window.profileTabs.openRename(name);
+          };
+          bar.appendChild(btn);
+        });
+        // Add the plus button at the end to create/select new profile
+        const addBtn = document.createElement('button');
+        addBtn.className = 'add-btn';
+        addBtn.textContent = '+';
+        addBtn.title = t('addTitle');
+        addBtn.onclick = () => {
+          window.profileTabs.addNew();
+        };
+        bar.appendChild(addBtn);
+      }
+
+      // Listen for updates from main process
+      window.profileTabs.onUpdate((data) => {
+        render(data.profiles || [], data.current);
+      });
+      // Listen for language updates
+      window.profileTabs.onLangUpdate((l) => {
+          if (l === 'id' || l === 'en') {
+            lang = l;
+            render(currentData.profiles, currentData.current);
+          }
+      });
+      // Initialize
+      initLang();
+    })();
+  </script>
+</body>
+</html>
